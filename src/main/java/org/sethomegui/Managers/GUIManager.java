@@ -10,6 +10,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.sethomegui.SetHomeGUI;
 import org.sethomegui.Utils.Utils;
+import com.nexomc.nexo.api.NexoItems;
+import com.nexomc.nexo.items.ItemBuilder;
 
 import java.util.*;
 
@@ -282,6 +284,13 @@ public class GUIManager {
 
         if (type.equals("HEAD")) {
             item = Utils.getHeadFromBase64(section.getString("value", ""));
+        } else if (type.equals("NEXO")) {
+            String nexoId = section.getString("nexo", "blank").toUpperCase();
+            ItemBuilder builder = NexoItems.itemFromId(nexoId);
+            if (builder == null) {
+                builder = NexoItems.itemFromId("blank");
+            }
+            item = new ItemStack(builder.build());
         } else {
             Material mat = Material.matchMaterial(type);
             item = new ItemStack(mat != null ? mat : Material.BARRIER);
