@@ -86,7 +86,7 @@ public class HomesMenuClickListener implements Listener {
             switch (action.toLowerCase()) {
                 case "back":
                     player.closeInventory();
-                    plugin.getGuiManager().openMainGUI(player);
+                    //plugin.getGuiManager().openMainGUI(player);
                     return;
 
                 case "previous_page":
