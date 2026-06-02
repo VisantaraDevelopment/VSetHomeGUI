@@ -55,7 +55,7 @@ public class MainCommands implements CommandExecutor {
 
         // 3. FLUJO A: Si no hay argumentos, abrimos el menú principal GUI como siempre
         if (args.length == 0) {
-            plugin.getGuiManager().openMainGUI(player);
+            plugin.getGuiManager().openHomesGUI(player);
             return true;
         }
 
