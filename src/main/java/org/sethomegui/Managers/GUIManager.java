@@ -341,8 +341,7 @@ public class GUIManager {
     public void playConfiguredClickSound(Player player, String guiPath) {
         String rawSound = plugin.getGuisConfig().getString("gui." + guiPath + ".click-sound");
         if (rawSound != null && !rawSound.isEmpty()) {
-            String formattedSound = Utils.formatSoundName(rawSound);
-            player.playSound(player.getLocation(), formattedSound, 1.0f, 1.0f);
+            player.playSound(player.getLocation(), rawSound, 1.0f, 1.0f);
         }
     }
 

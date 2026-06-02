@@ -56,6 +56,7 @@ public class MainCommands implements CommandExecutor {
         // 3. FLUJO A: Si no hay argumentos, abrimos el menú principal GUI como siempre
         if (args.length == 0) {
             plugin.getGuiManager().openHomesGUI(player);
+            player.playSound(player.getLocation(), "minecraft:block.note_block.xylophone", 1.0f, 1.0f);
             return true;
         }
 
