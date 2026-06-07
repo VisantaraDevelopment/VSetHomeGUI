@@ -21,7 +21,6 @@ public class HomeAdminTabCompleter implements TabCompleter {
 
         List<String> completions = new ArrayList<>();
 
-        // /homeadmin <aquí>
         if (args.length == 1) {
             List<String> subCommands = new ArrayList<>();
             subCommands.add("gui");
@@ -34,7 +33,6 @@ public class HomeAdminTabCompleter implements TabCompleter {
             return completions;
         }
 
-        // /homeadmin import <aquí>
         if (args.length == 2 && args[0].equalsIgnoreCase("import")) {
             List<String> sources = new ArrayList<>();
             sources.add("Essentials");

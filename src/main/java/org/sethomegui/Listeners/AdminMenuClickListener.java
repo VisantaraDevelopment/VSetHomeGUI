@@ -37,12 +37,11 @@ public class AdminMenuClickListener implements Listener {
 
         InventoryHolder holder = event.getInventory().getHolder();
 
-        // Comprobación de seguridad nativa por Holders
         if (!(holder instanceof AdminMainHolder) && !(holder instanceof AdminHomesHolder) && !(holder instanceof AdminConfirmHolder)) {
             return;
         }
 
-        event.setCancelled(true); // Cancela el movimiento de los ítems del panel
+        event.setCancelled(true);
 
         ItemStack clicked = event.getCurrentItem();
         int slot = event.getSlot();
@@ -54,15 +53,11 @@ public class AdminMenuClickListener implements Listener {
 
         int currentPage = manager.getPage(uuid);
         FileConfiguration mainConfig = plugin.getConfig();
-
-        // =========================================================================
-        // PANEL DE CONTROL PRINCIPAL: LISTADO DE JUGADORES
-        // =========================================================================
         if (holder instanceof AdminMainHolder) {
             switch (action) {
                 case "search":
                     admin.playSound(admin.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
-                    // No cerramos inventario aquí, el propio openSign del cliente se encargará de gestionarlo
+
                     manager.openSearchChat(admin);
                     return;
 
@@ -81,7 +76,6 @@ public class AdminMenuClickListener implements Listener {
                     return;
             }
 
-            // Filtrado por ranuras de cabezas especificadas en su YAML
             Section mainSection = plugin.getGuisConfig().getSection("gui.admin-gui");
             if (mainSection != null && mainSection.getIntList("slots").contains(slot)) {
                 String uuidStr = null;
@@ -101,16 +95,13 @@ public class AdminMenuClickListener implements Listener {
 
                 if (uuidStr != null) {
                     admin.playSound(admin.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
-                    manager.setPage(uuid, 1); // Reseteamos paginación interna para los hogares
+                    manager.setPage(uuid, 1);
                     manager.openAdminPlayerHomesMenu(admin, UUID.fromString(uuidStr), 1);
                 }
             }
             return;
         }
 
-        // =========================================================================
-        // SUB PANEL: REPOSITORIO DE HOGARES DEL JUGADOR AUDITADO
-        // =========================================================================
         if (holder instanceof AdminHomesHolder) {
             UUID targetUuid = ((AdminHomesHolder) holder).getAuditedPlayerUuid();
 
@@ -137,7 +128,6 @@ public class AdminMenuClickListener implements Listener {
                     String homeName = clicked.getItemMeta().getPersistentDataContainer().get(manager.targetHomeKey, PersistentDataType.STRING);
                     if (homeName == null) return;
 
-                    // CLIC IZQUIERDO: TELETRANSPORTE DIRECTO (Aquí cerramos inventario voluntariamente)
                     if (event.getClick().isLeftClick()) {
                         admin.playSound(admin.getLocation(), org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 1.0f, 1.0f);
                         admin.closeInventory();
@@ -164,7 +154,6 @@ public class AdminMenuClickListener implements Listener {
                             }
                         } catch (Exception ignored) {}
                     }
-                    // CLIC DERECHO: FLUJO DE CONFIRMACIÓN DE BORRADO
                     else if (event.getClick().isRightClick()) {
                         admin.playSound(admin.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 1.0f, 1.0f);
                         manager.openAdminConfirmationMenu(admin, targetUuid, homeName);
@@ -173,10 +162,6 @@ public class AdminMenuClickListener implements Listener {
             }
             return;
         }
-
-        // =========================================================================
-        // SUB PANEL: CONFIRMACIÓN ADMINISTRATIVA DE BORRADO
-        // =========================================================================
         if (holder instanceof AdminConfirmHolder) {
             AdminConfirmHolder confirmHolder = (AdminConfirmHolder) holder;
             UUID targetUuid = confirmHolder.getTargetUuid();
@@ -214,17 +199,12 @@ public class AdminMenuClickListener implements Listener {
         if (!(event.getPlayer() instanceof Player)) return;
         Player admin = (Player) event.getPlayer();
 
-        // Comprobamos si el inventario que se acaba de cerrar es nuestro menú principal
         if (event.getInventory().getHolder() instanceof AdminMainHolder) {
 
-            // Verificamos que el jugador NO esté entrando al modo chat de búsqueda.
-            // Si tiene los metadatos del chat, significa que el inventario se cerró a la fuerza
-            // para que escriba, por lo que NO debemos resetear el filtro en este caso.
             if (admin.hasMetadata("admin_search_mode")) {
                 return;
             }
 
-            // Si el jugador simplemente cerró el menú para volver a jugar, reseteamos su filtro
             AdminGUIManager manager = plugin.getAdminGUIManager();
             manager.setSearchFilter(admin.getUniqueId(), "");
         }

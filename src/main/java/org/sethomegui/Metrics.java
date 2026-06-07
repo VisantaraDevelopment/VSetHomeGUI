@@ -278,17 +278,12 @@ public class Metrics {
         }
 
         private void checkRelocation() {
-            // You can use the property to disable the check in your test environment
             if (System.getProperty("bstats.relocatecheck") == null
                     || !System.getProperty("bstats.relocatecheck").equals("false")) {
-                // Maven's Relocate is clever and changes strings, too. So we have to use this
-                // little "trick" ... :D
                 final String defaultPackage =
                         new String(new byte[] {'o', 'r', 'g', '.', 'b', 's', 't', 'a', 't', 's'});
                 final String examplePackage =
                         new String(new byte[] {'y', 'o', 'u', 'r', '.', 'p', 'a', 'c', 'k', 'a', 'g', 'e'});
-                // We want to make sure no one just copy & pastes the example and uses the wrong
-                // package names
                 if (MetricsBase.class.getPackage().getName().startsWith(defaultPackage)
                         || MetricsBase.class.getPackage().getName().startsWith(examplePackage)) {
                     throw new IllegalStateException("bStats Metrics class has not been relocated correctly!");
@@ -296,12 +291,6 @@ public class Metrics {
             }
         }
 
-        /**
-         * Gzips the given string.
-         *
-         * @param str The string to gzip.
-         * @return The gzipped string.
-         */
         private static byte[] compress(final String str) throws IOException {
             if (str == null) {
                 return null;
@@ -318,12 +307,6 @@ public class Metrics {
 
         private final Callable<Map<String, int[]>> callable;
 
-        /**
-         * Class constructor.
-         *
-         * @param chartId The id of the chart.
-         * @param callable The callable which is used to request the chart data.
-         */
         public AdvancedBarChart(String chartId, Callable<Map<String, int[]>> callable) {
             super(chartId);
             this.callable = callable;
@@ -334,20 +317,17 @@ public class Metrics {
             JsonObjectBuilder valuesBuilder = new JsonObjectBuilder();
             Map<String, int[]> map = callable.call();
             if (map == null || map.isEmpty()) {
-                // Null = skip the chart
                 return null;
             }
             boolean allSkipped = true;
             for (Map.Entry<String, int[]> entry : map.entrySet()) {
                 if (entry.getValue().length == 0) {
-                    // Skip this invalid
                     continue;
                 }
                 allSkipped = false;
                 valuesBuilder.appendField(entry.getKey(), entry.getValue());
             }
             if (allSkipped) {
-                // Null = skip the chart
                 return null;
             }
             return new JsonObjectBuilder().appendField("values", valuesBuilder.build()).build();
@@ -372,7 +352,6 @@ public class Metrics {
             try {
                 JsonObjectBuilder.JsonObject data = getChartData();
                 if (data == null) {
-                    // If the data is null we don't send the chart.
                     return null;
                 }
                 builder.appendField("data", data);
@@ -392,12 +371,6 @@ public class Metrics {
 
         private final Callable<Map<String, Map<String, Integer>>> callable;
 
-        /**
-         * Class constructor.
-         *
-         * @param chartId The id of the chart.
-         * @param callable The callable which is used to request the chart data.
-         */
         public DrilldownPie(String chartId, Callable<Map<String, Map<String, Integer>>> callable) {
             super(chartId);
             this.callable = callable;
@@ -408,7 +381,6 @@ public class Metrics {
             JsonObjectBuilder valuesBuilder = new JsonObjectBuilder();
             Map<String, Map<String, Integer>> map = callable.call();
             if (map == null || map.isEmpty()) {
-                // Null = skip the chart
                 return null;
             }
             boolean reallyAllSkipped = true;
@@ -425,7 +397,6 @@ public class Metrics {
                 }
             }
             if (reallyAllSkipped) {
-                // Null = skip the chart
                 return null;
             }
             return new JsonObjectBuilder().appendField("values", valuesBuilder.build()).build();
@@ -436,12 +407,6 @@ public class Metrics {
 
         private final Callable<Map<String, Integer>> callable;
 
-        /**
-         * Class constructor.
-         *
-         * @param chartId The id of the chart.
-         * @param callable The callable which is used to request the chart data.
-         */
         public AdvancedPie(String chartId, Callable<Map<String, Integer>> callable) {
             super(chartId);
             this.callable = callable;
@@ -452,20 +417,17 @@ public class Metrics {
             JsonObjectBuilder valuesBuilder = new JsonObjectBuilder();
             Map<String, Integer> map = callable.call();
             if (map == null || map.isEmpty()) {
-                // Null = skip the chart
                 return null;
             }
             boolean allSkipped = true;
             for (Map.Entry<String, Integer> entry : map.entrySet()) {
                 if (entry.getValue() == 0) {
-                    // Skip this invalid
                     continue;
                 }
                 allSkipped = false;
                 valuesBuilder.appendField(entry.getKey(), entry.getValue());
             }
             if (allSkipped) {
-                // Null = skip the chart
                 return null;
             }
             return new JsonObjectBuilder().appendField("values", valuesBuilder.build()).build();
@@ -476,12 +438,6 @@ public class Metrics {
 
         private final Callable<Map<String, Integer>> callable;
 
-        /**
-         * Class constructor.
-         *
-         * @param chartId The id of the chart.
-         * @param callable The callable which is used to request the chart data.
-         */
         public SimpleBarChart(String chartId, Callable<Map<String, Integer>> callable) {
             super(chartId);
             this.callable = callable;
@@ -492,7 +448,6 @@ public class Metrics {
             JsonObjectBuilder valuesBuilder = new JsonObjectBuilder();
             Map<String, Integer> map = callable.call();
             if (map == null || map.isEmpty()) {
-                // Null = skip the chart
                 return null;
             }
             for (Map.Entry<String, Integer> entry : map.entrySet()) {
@@ -506,12 +461,6 @@ public class Metrics {
 
         private final Callable<Integer> callable;
 
-        /**
-         * Class constructor.
-         *
-         * @param chartId The id of the chart.
-         * @param callable The callable which is used to request the chart data.
-         */
         public SingleLineChart(String chartId, Callable<Integer> callable) {
             super(chartId);
             this.callable = callable;
@@ -521,7 +470,6 @@ public class Metrics {
         protected JsonObjectBuilder.JsonObject getChartData() throws Exception {
             int value = callable.call();
             if (value == 0) {
-                // Null = skip the chart
                 return null;
             }
             return new JsonObjectBuilder().appendField("value", value).build();
@@ -532,12 +480,6 @@ public class Metrics {
 
         private final Callable<Map<String, Integer>> callable;
 
-        /**
-         * Class constructor.
-         *
-         * @param chartId The id of the chart.
-         * @param callable The callable which is used to request the chart data.
-         */
         public MultiLineChart(String chartId, Callable<Map<String, Integer>> callable) {
             super(chartId);
             this.callable = callable;
@@ -548,20 +490,17 @@ public class Metrics {
             JsonObjectBuilder valuesBuilder = new JsonObjectBuilder();
             Map<String, Integer> map = callable.call();
             if (map == null || map.isEmpty()) {
-                // Null = skip the chart
                 return null;
             }
             boolean allSkipped = true;
             for (Map.Entry<String, Integer> entry : map.entrySet()) {
                 if (entry.getValue() == 0) {
-                    // Skip this invalid
                     continue;
                 }
                 allSkipped = false;
                 valuesBuilder.appendField(entry.getKey(), entry.getValue());
             }
             if (allSkipped) {
-                // Null = skip the chart
                 return null;
             }
             return new JsonObjectBuilder().appendField("values", valuesBuilder.build()).build();
@@ -572,12 +511,6 @@ public class Metrics {
 
         private final Callable<String> callable;
 
-        /**
-         * Class constructor.
-         *
-         * @param chartId The id of the chart.
-         * @param callable The callable which is used to request the chart data.
-         */
         public SimplePie(String chartId, Callable<String> callable) {
             super(chartId);
             this.callable = callable;
@@ -587,19 +520,12 @@ public class Metrics {
         protected JsonObjectBuilder.JsonObject getChartData() throws Exception {
             String value = callable.call();
             if (value == null || value.isEmpty()) {
-                // Null = skip the chart
                 return null;
             }
             return new JsonObjectBuilder().appendField("value", value).build();
         }
     }
 
-    /**
-     * An extremely simple JSON builder.
-     *
-     * <p>While this class is neither feature-rich nor the most performant one, it's sufficient enough
-     * for its use-case.
-     */
     public static class JsonObjectBuilder {
 
         private StringBuilder builder = new StringBuilder();
@@ -610,24 +536,11 @@ public class Metrics {
             builder.append("{");
         }
 
-        /**
-         * Appends a null field to the JSON.
-         *
-         * @param key The key of the field.
-         * @return A reference to this object.
-         */
         public JsonObjectBuilder appendNull(String key) {
             appendFieldUnescaped(key, "null");
             return this;
         }
 
-        /**
-         * Appends a string field to the JSON.
-         *
-         * @param key The key of the field.
-         * @param value The value of the field.
-         * @return A reference to this object.
-         */
         public JsonObjectBuilder appendField(String key, String value) {
             if (value == null) {
                 throw new IllegalArgumentException("JSON value must not be null");
@@ -636,25 +549,11 @@ public class Metrics {
             return this;
         }
 
-        /**
-         * Appends an integer field to the JSON.
-         *
-         * @param key The key of the field.
-         * @param value The value of the field.
-         * @return A reference to this object.
-         */
         public JsonObjectBuilder appendField(String key, int value) {
             appendFieldUnescaped(key, String.valueOf(value));
             return this;
         }
 
-        /**
-         * Appends an object to the JSON.
-         *
-         * @param key The key of the field.
-         * @param object The object.
-         * @return A reference to this object.
-         */
         public JsonObjectBuilder appendField(String key, JsonObject object) {
             if (object == null) {
                 throw new IllegalArgumentException("JSON object must not be null");
@@ -663,13 +562,6 @@ public class Metrics {
             return this;
         }
 
-        /**
-         * Appends a string array to the JSON.
-         *
-         * @param key The key of the field.
-         * @param values The string array.
-         * @return A reference to this object.
-         */
         public JsonObjectBuilder appendField(String key, String[] values) {
             if (values == null) {
                 throw new IllegalArgumentException("JSON values must not be null");
@@ -682,13 +574,6 @@ public class Metrics {
             return this;
         }
 
-        /**
-         * Appends an integer array to the JSON.
-         *
-         * @param key The key of the field.
-         * @param values The integer array.
-         * @return A reference to this object.
-         */
         public JsonObjectBuilder appendField(String key, int[] values) {
             if (values == null) {
                 throw new IllegalArgumentException("JSON values must not be null");
@@ -699,13 +584,6 @@ public class Metrics {
             return this;
         }
 
-        /**
-         * Appends an object array to the JSON.
-         *
-         * @param key The key of the field.
-         * @param values The integer array.
-         * @return A reference to this object.
-         */
         public JsonObjectBuilder appendField(String key, JsonObject[] values) {
             if (values == null) {
                 throw new IllegalArgumentException("JSON values must not be null");
@@ -716,12 +594,6 @@ public class Metrics {
             return this;
         }
 
-        /**
-         * Appends a field to the object.
-         *
-         * @param key The key of the field.
-         * @param escapedValue The escaped value of the field.
-         */
         private void appendFieldUnescaped(String key, String escapedValue) {
             if (builder == null) {
                 throw new IllegalStateException("JSON has already been built");
@@ -736,11 +608,6 @@ public class Metrics {
             hasAtLeastOneField = true;
         }
 
-        /**
-         * Builds the JSON string and invalidates this builder.
-         *
-         * @return The built JSON string.
-         */
         public JsonObject build() {
             if (builder == null) {
                 throw new IllegalStateException("JSON has already been built");
@@ -750,15 +617,6 @@ public class Metrics {
             return object;
         }
 
-        /**
-         * Escapes the given string like stated in https://www.ietf.org/rfc/rfc4627.txt.
-         *
-         * <p>This method escapes only the necessary characters '"', '\'. and '\u0000' - '\u001F'.
-         * Compact escapes are not used (e.g., '\n' is escaped as "\u000a" and not as "\n").
-         *
-         * @param value The value to escape.
-         * @return The escaped value.
-         */
         private static String escape(String value) {
             final StringBuilder builder = new StringBuilder();
             for (int i = 0; i < value.length(); i++) {
@@ -778,13 +636,6 @@ public class Metrics {
             return builder.toString();
         }
 
-        /**
-         * A super simple representation of a JSON object.
-         *
-         * <p>This class only exists to make methods of the {@link JsonObjectBuilder} type-safe and not
-         * allow a raw string inputs for methods like {@link JsonObjectBuilder#appendField(String,
-         * JsonObject)}.
-         */
         public static class JsonObject {
 
             private final String value;

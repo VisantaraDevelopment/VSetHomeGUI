@@ -23,14 +23,11 @@ public class HomeTabCompleter implements TabCompleter {
 
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
-        // Solo autocompletar si quien escribe es un jugador real
         if (!(sender instanceof Player)) {
             return Collections.emptyList();
         }
 
         Player player = (Player) sender;
-
-        // Comprobación dinámica de permisos
         boolean requiresPermission = plugin.getMainConfig().getBoolean("requires-default-permission", false);
         if (requiresPermission) {
             String permissionNode = plugin.getMainConfig().getString("default-permission", "sethome.use");
@@ -38,14 +35,10 @@ public class HomeTabCompleter implements TabCompleter {
                 return Collections.emptyList();
             }
         }
-
-        // Obtenemos la lista real de hogares del jugador
         List<String> playerHomes = plugin.getHomeManager().getPlayerFile(player.getUniqueId()).getStringList("homes");
         if (playerHomes == null || playerHomes.isEmpty()) {
             return Collections.emptyList();
         }
-
-        // Reconstruimos el argumento actual escrito por el usuario en el chat
         StringBuilder currentArgBuilder = new StringBuilder();
         for (int i = 0; i < args.length; i++) {
             currentArgBuilder.append(args[i]);
@@ -53,7 +46,6 @@ public class HomeTabCompleter implements TabCompleter {
         }
         String currentSearch = currentArgBuilder.toString();
 
-        // Si el usuario abrió comillas manualmente al escribir (ej: /home "mi), limpiamos la comilla inicial de la búsqueda
         if (currentSearch.startsWith("\"")) {
             currentSearch = currentSearch.substring(1);
         }
@@ -61,10 +53,8 @@ public class HomeTabCompleter implements TabCompleter {
         List<String> completions = new ArrayList<>();
 
         for (String home : playerHomes) {
-            // Verificamos si el nombre del hogar coincide con lo buscado
             if (StringUtil.startsWithIgnoreCase(home, currentSearch)) {
 
-                // Si el hogar contiene espacios, lo envolvemos entre comillas dobles para que actúe como 1 único parámetro
                 if (home.contains(" ")) {
                     completions.add("\"" + home + "\"");
                 } else {
@@ -72,8 +62,6 @@ public class HomeTabCompleter implements TabCompleter {
                 }
             }
         }
-
-        // Ordenamos alfabéticamente las sugerencias antes de enviarlas al cliente
         Collections.sort(completions);
         return completions;
     }

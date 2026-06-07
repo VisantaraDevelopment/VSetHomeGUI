@@ -84,7 +84,6 @@ public class AdminGUIManager {
 
         int size = section.getInt("size", 54);
 
-        // Optimización anti-reset de cursor: Reutilizar inventario abierto si corresponde
         Inventory gui;
         if (player.getOpenInventory().getTopInventory().getHolder() instanceof AdminMainHolder &&
                 player.getOpenInventory().getTopInventory().getSize() == size) {
@@ -183,13 +182,10 @@ public class AdminGUIManager {
 
         File playerFile = new File(plugin.getDataFolder() + "/data", targetUuid.toString() + ".yml");
         if (!playerFile.exists()) {
-            // Leemos el mensaje desde la sección admin con un fallback seguro
             String noHomesMsg = plugin.getMainConfig().getString(
                     "messages.admin.no-homes-found",
                     "&cThis player does not have any homes configurations."
             );
-
-            // Enviamos el mensaje aplicando la traducción de colores del plugin
             admin.sendMessage(Utils.color(noHomesMsg));
             return;
         }
@@ -312,13 +308,11 @@ public class AdminGUIManager {
                     admin.openInventory(gui);
                 }
             } catch (Exception e) {
-                // Leemos el mensaje desde la sección admin con un fallback idéntico a tu cadena original
                 String recordErrorMsg = plugin.getMainConfig().getString(
                         "messages.admin.player-record-error",
                         "&cError processing player record."
                 );
 
-                // Enviamos el mensaje aplicando la paleta de colores hexadecimales y tradicionales
                 admin.sendMessage(Utils.color(recordErrorMsg));
                 e.printStackTrace();
             }
@@ -384,18 +378,11 @@ public class AdminGUIManager {
     }
 
     public void openSearchChat(Player player) {
-        // Cerramos el menú actual para que el jugador pueda ver el chat claramente
         player.closeInventory();
-
-        // Obtenemos la lista de mensajes configurada desde el config.yml
         List<String> promptLines = plugin.getConfig().getStringList("messages.admin.search-prompt");
-
-        // Recorremos cada línea configurada y la enviamos coloreada
         for (String line : promptLines) {
             player.sendMessage(Utils.color(line));
         }
-
-        // Registramos al jugador en los metadatos de conversación de la sesión
         player.setMetadata("admin_search_mode", new org.bukkit.metadata.FixedMetadataValue(plugin, true));
     }
 

@@ -24,23 +24,17 @@ public class DelHomeTabCompleter implements TabCompleter {
         if (!(sender instanceof Player)) return completions;
 
         Player player = (Player) sender;
-
-        // Obtener el archivo de datos del jugador
         YamlDocument playerFile = plugin.getHomeManager().getPlayerFile(player.getUniqueId());
         if (playerFile == null) return completions;
 
         List<String> playerHomes = playerFile.getStringList("homes");
         if (playerHomes == null || playerHomes.isEmpty()) return completions;
-
-        // Reconstruimos lo que el usuario está escribiendo en el chat actualmente
         StringBuilder currentInputBuilder = new StringBuilder();
         for (int i = 0; i < args.length; i++) {
             currentInputBuilder.append(args[i]);
             if (i < args.length - 1) currentInputBuilder.append(" ");
         }
         String currentInput = currentInputBuilder.toString().toLowerCase();
-
-        // Si el usuario abrió las comillas pero no las ha cerrado, limpiamos los extremos
         if (currentInput.startsWith("\"")) {
             currentInput = currentInput.substring(1);
         }
@@ -50,11 +44,9 @@ public class DelHomeTabCompleter implements TabCompleter {
 
         for (String home : playerHomes) {
             if (home.toLowerCase().startsWith(currentInput)) {
-                // REGLA CLAVE: Si el nombre del hogar tiene espacios, se le ponen comillas
                 if (home.contains(" ")) {
                     completions.add("\"" + home + "\"");
                 } else {
-                    // Si es un nombre simple (ej: "mi_casa"), se envía normal
                     completions.add(home);
                 }
             }

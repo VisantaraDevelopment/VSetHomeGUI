@@ -23,7 +23,6 @@ public class HomeAdminCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        // 1. Validación de Permisos Administrativos (Consola o Jugador)
         if (!sender.hasPermission("sethome.admin")) {
             String noPermissionMsg = plugin.getMainConfig().getString(
                     "messages.admin.no-permission",
@@ -32,8 +31,6 @@ public class HomeAdminCommand implements CommandExecutor {
             sender.sendMessage(Utils.color(noPermissionMsg));
             return true;
         }
-
-        // 2. Validación de argumentos mínimos
         if (args.length == 0) {
             if (sender instanceof Player) {
                 Utils.sendUsage((Player) sender, "homeadmin gui", plugin);
@@ -42,8 +39,6 @@ public class HomeAdminCommand implements CommandExecutor {
             }
             return true;
         }
-
-        // 3. SUBCOMANDO: VERSION
         if (args[0].equalsIgnoreCase("version")) {
             List<String> versionLines = plugin.getMainConfig().getStringList("messages.plugin-version");
             String currentVersion = plugin.getPluginMeta().getVersion(); // Obtiene la versión nativa del plugin.yml
@@ -53,27 +48,20 @@ public class HomeAdminCommand implements CommandExecutor {
                     sender.sendMessage(Utils.color(line.replace("%version%", currentVersion)));
                 }
             } else {
-                // Fallback por si la lista no existe o está vacía en la config
                 sender.sendMessage(Utils.color("&7Plugin: &#ef6603SetHomeGUI &7| Version: &#ef6603" + currentVersion));
             }
             return true;
         }
-
-        // 4. SUBCOMANDO: RELOAD
         if (args[0].equalsIgnoreCase("reload")) {
-            // Se ejecuta de forma asíncrona para leer de disco de manera segura
             Bukkit.getAsyncScheduler().runNow(plugin, (task) -> {
                 try {
-                    // LLamada a los métodos nativos de BoostedYaml alojados en tu clase principal
                     plugin.getMainConfig().reload();
                     plugin.getGuisConfig().reload();
 
-                    // Si tienes un archivo independiente mapeado para las acciones:
                     if (plugin.getActionsConfig() != null) {
                         plugin.getActionsConfig().reload();
                     }
 
-                    // Obtenemos el mensaje de éxito directamente desde el archivo recién actualizado
                     String reloadMsg = plugin.getMainConfig().getString(
                             "messages.admin.reload-success",
                             "&#ef6603[SetHomeGUI] &aAll configurations (config, actions, guis) successfully reloaded!"
@@ -88,8 +76,6 @@ public class HomeAdminCommand implements CommandExecutor {
             });
             return true;
         }
-
-        // 5. SUBCOMANDO: IMPORT
         if (args[0].equalsIgnoreCase("import")) {
             if (args.length < 2) {
                 String importUsage = plugin.getMainConfig().getString("messages.admin.import-usage", "&#ef6603[SetHomeGUI] &cUsage: /homeadmin import <Essentials|HuskHomes>");
@@ -100,13 +86,10 @@ public class HomeAdminCommand implements CommandExecutor {
             String source = args[1];
             String startMsg = plugin.getMainConfig().getString("messages.admin.import-started", "&#ef6603[SetHomeGUI] &#f9a805Starting data import process asynchronously...");
             sender.sendMessage(Utils.color(startMsg));
-
-            // Ejecución Asíncrona obligatoria para no congelar el servidor con lecturas de disco/SQL
             Bukkit.getAsyncScheduler().runNow(plugin, (task) -> {
                 if (source.equalsIgnoreCase("Essentials")) {
                     importer.importHomesFromEssentialsForAllPlayers(sender);
                 } else if (source.equalsIgnoreCase("HuskHomes")) {
-                    // Ruta por defecto adaptada a la base de datos interna SQLite de HuskHomes
                     importer.importHomesFromHuskHomesForAllPlayers(sender, "HuskHomes/HuskHomesData.db");
                 } else {
                     sender.sendMessage(Utils.color("&cUnknown source. Please use 'Essentials' or 'HuskHomes'."));
@@ -114,8 +97,6 @@ public class HomeAdminCommand implements CommandExecutor {
             });
             return true;
         }
-
-        // 6. SUBCOMANDO: GUI
         if (args[0].equalsIgnoreCase("gui")) {
             if (!(sender instanceof Player)) {
                 String onlyPlayersMsg = plugin.getMainConfig().getString(
