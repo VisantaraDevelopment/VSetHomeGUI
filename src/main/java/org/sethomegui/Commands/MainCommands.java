@@ -24,7 +24,6 @@ public class MainCommands implements CommandExecutor {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
 
-        // 1. Check if the sender is a player
         if (!(sender instanceof Player)) {
             String onlyPlayersMsg = plugin.getMainConfig().getString(
                     "messages.only-players",
@@ -37,7 +36,6 @@ public class MainCommands implements CommandExecutor {
         Player player = (Player) sender;
         YamlDocument config = plugin.getMainConfig();
 
-        // 2. Dynamic Permission Check based on config.yml
         boolean requiresPermission = config.getBoolean("requires-default-permission", false);
 
         if (requiresPermission) {
@@ -53,14 +51,11 @@ public class MainCommands implements CommandExecutor {
             }
         }
 
-        // 3. FLUJO A: Si no hay argumentos, abrimos el menú principal GUI como siempre
         if (args.length == 0) {
             plugin.getGuiManager().openHomesGUI(player);
-            player.playSound(player.getLocation(), "minecraft:block.note_block.xylophone", 1.0f, 1.0f);
             return true;
         }
 
-        // 4. FLUJO B: Si hay argumentos (ej: /home mi casa), unimos todo el texto para el nombre
         StringBuilder builder = new StringBuilder();
         for (int i = 0; i < args.length; i++) {
             builder.append(args[i]);
@@ -68,11 +63,9 @@ public class MainCommands implements CommandExecutor {
         }
         String homeName = builder.toString().trim().replace("\"", "");
 
-        // Obtenemos el archivo YAML de datos específico del jugador
         YamlDocument playerFile = plugin.getHomeManager().getPlayerFile(player.getUniqueId());
         List<String> rawHomesList = playerFile.getStringList("homes");
 
-        // Verificamos si el hogar solicitado existe en sus registros
         if (rawHomesList == null || !rawHomesList.contains(homeName)) {
             String errorMsg = config.getString(
                     "messages.home-action-messages.home-not-found",
@@ -82,7 +75,6 @@ public class MainCommands implements CommandExecutor {
             return true;
         }
 
-        // 5. EXTRACCIÓN DE LA LOCACIÓN (Misma lógica que tu menú GUI)
         String worldName = playerFile.getString(homeName + ".world");
         org.bukkit.World world = Bukkit.getWorld(worldName);
 
@@ -102,8 +94,6 @@ public class MainCommands implements CommandExecutor {
         float pitch = playerFile.getDouble(homeName + ".pitch").floatValue();
 
         Location targetLoc = new Location(world, x, y, z, yaw, pitch);
-
-        // Disparamos tu lógica con barra de acción, títulos y compatibilidad con Folia/Paper
         plugin.getTeleportManager().queueTeleport(player, targetLoc);
 
         return true;

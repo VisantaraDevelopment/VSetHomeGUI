@@ -6,8 +6,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.sethomegui.SetHomeGUI;
+import org.sethomegui.Managers.ConfirmHolder;
 import org.sethomegui.Utils.Utils;
 
 import java.io.IOException;
@@ -27,19 +29,13 @@ public class ConfirmationMenuListener implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player player = (Player) event.getWhoClicked();
+
+        InventoryHolder holder = event.getInventory().getHolder();
+        if (!(holder instanceof ConfirmHolder)) return;
+
+        ConfirmHolder confirmHolder = (ConfirmHolder) holder;
         UUID uuid = player.getUniqueId();
-
-        String homeName = plugin.getGuiManager().getPendingDeletionHome(uuid);
-        if (homeName == null) return;
-
-        YamlDocument guiConfig = plugin.getGuisConfig();
-        Section confirmSection = guiConfig.getSection("gui.confirmation-gui");
-        if (confirmSection == null) return;
-
-        String expectedTitle = confirmSection.getString("title", "").replace("%home_name%", homeName);
-        expectedTitle = Utils.setPlaceholders(player, expectedTitle, plugin);
-
-        if (!event.getView().getTitle().equals(expectedTitle)) return;
+        String homeName = confirmHolder.getHomeName();
 
         event.setCancelled(true);
 
@@ -47,6 +43,11 @@ public class ConfirmationMenuListener implements Listener {
         if (clickedItem == null || !clickedItem.hasItemMeta()) return;
 
         int clickedSlot = event.getSlot();
+
+        YamlDocument guiConfig = plugin.getGuisConfig();
+        Section confirmSection = guiConfig.getSection("gui.confirmation-gui");
+        if (confirmSection == null) return;
+
         Section itemsSection = confirmSection.getSection("items");
         if (itemsSection == null) return;
 
@@ -70,9 +71,8 @@ public class ConfirmationMenuListener implements Listener {
 
         plugin.getGuiManager().playConfiguredClickSound(player, "confirmation-gui");
 
-        // ACCIÓN A: EL JUGADOR CONFIRMA LA ELIMINACIÓN
         if (clickedKey.equalsIgnoreCase("confirm-button")) {
-            player.closeInventory(); // 1. Se cierra el menú por completo
+            player.closeInventory();
             plugin.getGuiManager().clearPendingDeletion(uuid);
 
             YamlDocument playerFile = plugin.getHomeManager().getPlayerFile(uuid);
@@ -90,27 +90,17 @@ public class ConfirmationMenuListener implements Listener {
                             "&#ef6603[SetHomeGUI] &#f9a805Home &f%name% &#f9a805has been successfully deleted.");
                     player.sendMessage(Utils.setPlaceholders(player, deleteMsg.replace("%name%", homeName), plugin));
                 } catch (IOException e) {
-                    // Leemos el mensaje desde el config.yml con un fallback idéntico a tu cadena original
                     String deletionErrorMsg = plugin.getMainConfig().getString(
                             "messages.home-action-messages.file-deletion-error",
                             "&#ef6603[SetHomeGUI] &cAn error occurred while deleting the file."
                     );
-
-                    // Enviamos el mensaje procesando los colores hexadecimales y tradicionales
                     player.sendMessage(Utils.color(deletionErrorMsg));
                     e.printStackTrace();
                 }
             }
-
-            // ❌ Eliminada la recarga de openHomesGUI(player) para que no vuelva a abrirse nada.
-        }
-
-        // ACCIÓN B: EL JUGADOR CANCELA EL PROCESO (Esta regla la dejamos igual para que sí le devuelva atrás)
-        else if (clickedKey.equalsIgnoreCase("cancel-button")) {
+        } else if (clickedKey.equalsIgnoreCase("cancel-button")) {
             player.closeInventory();
             plugin.getGuiManager().clearPendingDeletion(uuid);
-
-            // Si cancela, le vuelve a abrir su lista de hogares de forma fluida
             plugin.getGuiManager().openHomesGUI(player);
         }
     }

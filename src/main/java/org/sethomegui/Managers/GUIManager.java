@@ -25,9 +25,6 @@ public class GUIManager {
         this.plugin = plugin;
     }
 
-    /**
-     * Opens the main inventory menu
-     */
     public void openMainGUI(Player player) {
         YamlDocument config = plugin.getGuisConfig();
         Section mainSection = config.getSection("gui.main-gui");
@@ -38,14 +35,13 @@ public class GUIManager {
 
         String title = Utils.setPlaceholders(player, mainSection.getString("title", "Menu"), plugin);
         int size = mainSection.getInt("size", 27);
-        Inventory gui = Bukkit.createInventory(null, size, title);
+        Inventory gui = Bukkit.createInventory(new MainHolder(), size, title);
 
         Section itemsSection = mainSection.getSection("items");
         if (itemsSection != null) {
             for (Object keyObj : itemsSection.getKeys()) {
                 String key = String.valueOf(keyObj);
 
-                // Special visibility check for the admin item
                 if (key.equals("admin-menu") && !player.hasPermission("sethome.admin")) {
                     continue;
                 }
@@ -55,7 +51,6 @@ public class GUIManager {
 
                 ItemStack item = createBaseItem(player, itemData);
 
-                // Grid positioning logic (Works perfectly for both formats: vertical and [1,2,3])
                 if (itemData.contains("slots")) {
                     List<Integer> slots = itemData.getIntList("slots");
                     for (int slot : slots) {
@@ -71,9 +66,6 @@ public class GUIManager {
         player.openInventory(gui);
     }
 
-    /**
-     * Opens the paginated homes inventory menu reading live data
-     */
     public void openHomesGUI(Player player) {
         YamlDocument config = plugin.getGuisConfig();
         Section section = config.getSection("gui.homes-gui");
@@ -82,7 +74,6 @@ public class GUIManager {
         UUID uuid = player.getUniqueId();
         YamlDocument playerFile = plugin.getHomeManager().getPlayerFile(uuid);
 
-        // Obtenemos la lista real de nombres indexados de hogares
         List<String> rawHomesList = playerFile != null ? playerFile.getStringList("homes") : null;
         if (rawHomesList == null) {
             rawHomesList = new ArrayList<>();
@@ -94,11 +85,9 @@ public class GUIManager {
         List<Integer> homeSlots = section.getIntList("home-slots");
         int homesPerPage = homeSlots.size();
 
-        // Cálculo matemático exacto de páginas máximas
         int maxPages = (int) Math.ceil((double) totalHomes / homesPerPage);
         if (maxPages == 0) maxPages = 1;
 
-        // Si por alguna razón la página actual quedó huérfana (ej. borró una casa), reajustamos
         if (currentPage > maxPages) {
             currentPage = maxPages;
             playerPage.put(uuid, currentPage);
@@ -110,38 +99,32 @@ public class GUIManager {
         title = Utils.setPlaceholders(player, title, plugin);
 
         int size = section.getInt("size", 54);
-        Inventory gui = Bukkit.createInventory(null, size, title);
+        Inventory gui = Bukkit.createInventory(new HomesHolder(uuid, currentPage), size, title);
 
-        // 1. Renderizar paneles fijos y flechas de paginación
         renderStaticItems(player, gui, section, currentPage, maxPages);
 
-        // 2. RENDER DINÁMICO DE HOGARES REALES
         Section itemTemplate = section.getSection("items.home-item");
         if (itemTemplate != null && totalHomes > 0) {
             int startIndex = (currentPage - 1) * homesPerPage;
 
             for (int i = 0; i < homesPerPage; i++) {
                 int homeIndex = startIndex + i;
-                if (homeIndex >= totalHomes) break; // Ya no hay más casas que mostrar
+                if (homeIndex >= totalHomes) break;
 
                 String homeName = rawHomesList.get(homeIndex);
                 int slot = homeSlots.get(i);
 
-                // Construimos el ítem base leyendo del template
                 ItemStack homeItem = createBaseItem(player, itemTemplate);
                 ItemMeta meta = homeItem.getItemMeta();
 
                 if (meta != null) {
-                    // Reemplazamos los parámetros de la casa en el Display Name
                     String name = meta.getDisplayName().replace("%home_name%", homeName);
                     meta.setDisplayName(name);
 
-                    // Reemplazamos las coordenadas reales en el Lore
                     if (meta.hasLore()) {
                         List<String> lore = new ArrayList<>();
 
                         String world = playerFile.getString(homeName + ".world", "world");
-                        // Formateamos las coordenadas a 2 decimales para que no se vea un texto gigante de números
                         String x = String.format(Locale.US, "%.2f", playerFile.getDouble(homeName + ".x"));
                         String y = String.format(Locale.US, "%.2f", playerFile.getDouble(homeName + ".y"));
                         String z = String.format(Locale.US, "%.2f", playerFile.getDouble(homeName + ".z"));
@@ -164,24 +147,20 @@ public class GUIManager {
         player.openInventory(gui);
     }
 
-    /**
-     * Opens the dynamic confirmation GUI for deleting a home
-     */
     public void openConfirmationGUI(Player player, String homeName) {
         UUID uuid = player.getUniqueId();
-        pendingDeletionHome.put(uuid, homeName); // Guardamos la casa en memoria
+        pendingDeletionHome.put(uuid, homeName);
 
         YamlDocument config = plugin.getGuisConfig();
         Section section = config.getSection("gui.confirmation-gui");
         if (section == null) return;
 
-        // Reemplazamos el nombre de la casa en el título
         String title = section.getString("title", "Confirm Deletion")
                 .replace("%home_name%", homeName);
         title = Utils.setPlaceholders(player, title, plugin);
 
         int size = section.getInt("size", 27);
-        Inventory gui = Bukkit.createInventory(null, size, title);
+        Inventory gui = Bukkit.createInventory(new ConfirmHolder(uuid, homeName), size, title);
 
         Section itemsSection = section.getSection("items");
         if (itemsSection != null) {
@@ -190,11 +169,9 @@ public class GUIManager {
                 Section itemData = itemsSection.getSection(key);
                 if (itemData == null) continue;
 
-                // Construimos el ítem base
                 ItemStack item = createBaseItem(player, itemData);
                 ItemMeta meta = item.getItemMeta();
 
-                // Inyectamos el nombre de la casa de forma dinámica en las placeholders del ítem de Info
                 if (meta != null) {
                     if (meta.hasDisplayName()) {
                         meta.setDisplayName(meta.getDisplayName().replace("%home_name%", homeName));
@@ -209,7 +186,6 @@ public class GUIManager {
                     item.setItemMeta(meta);
                 }
 
-                // Colocamos el ítem en su slot único o en sus múltiples slots decorativos
                 if (itemData.contains("slots")) {
                     for (int slot : itemData.getIntList("slots")) {
                         gui.setItem(slot, item);
@@ -223,12 +199,6 @@ public class GUIManager {
         player.openInventory(gui);
     }
 
-    /**
-     * Renders background panes, page navigation, and static items
-     */
-    /**
-     * Renders all static and structural items into the GUI, forcing pagination buttons to be always visible.
-     */
     private void renderStaticItems(Player player, Inventory gui, Section menuSection, int currentPage, int maxPages) {
         Section itemsSection = menuSection.getSection("items");
         if (itemsSection == null) return;
@@ -236,18 +206,15 @@ public class GUIManager {
         for (Object keyObj : itemsSection.getKeys()) {
             String key = String.valueOf(keyObj);
 
-            // Saltamos la plantilla dinámica de hogares ya que esa se dibuja aparte
             if (key.equalsIgnoreCase("home-item")) continue;
 
             Section itemData = itemsSection.getSection(key);
             if (itemData == null) continue;
 
-            // Creamos el ítem base leyendo las propiedades del YML (Material, texturas Skull, etc.)
             ItemStack item = createBaseItem(player, itemData);
             ItemMeta meta = item.getItemMeta();
 
             if (meta != null) {
-                // Reemplazamos variables globales de paginación si el administrador las usó en los botones
                 if (meta.hasDisplayName()) {
                     meta.setDisplayName(meta.getDisplayName()
                             .replace("%page%", String.valueOf(currentPage))
@@ -264,7 +231,6 @@ public class GUIManager {
                 item.setItemMeta(meta);
             }
 
-            // Colocamos el ítem de forma estricta en su posición o lista de posiciones
             if (itemData.contains("slots")) {
                 for (int slot : itemData.getIntList("slots")) {
                     gui.setItem(slot, item);
@@ -275,9 +241,6 @@ public class GUIManager {
         }
     }
 
-    /**
-     * Factory utility to generate an ItemStack base out of BoostedYAML fields
-     */
     private ItemStack createBaseItem(Player player, Section section) {
         String type = section.getString("type", "STONE").toUpperCase();
         ItemStack item;
@@ -290,7 +253,11 @@ public class GUIManager {
             if (builder == null) {
                 builder = NexoItems.itemFromId("blank");
             }
-            item = new ItemStack(builder.build());
+            if (builder == null) {
+                item = new ItemStack(Material.BARRIER);
+            } else {
+                item = new ItemStack(builder.build());
+            }
         } else {
             Material mat = Material.matchMaterial(type);
             item = new ItemStack(mat != null ? mat : Material.BARRIER);
@@ -320,8 +287,6 @@ public class GUIManager {
         return item;
     }
 
-    // --- HELPER METHODS FOR THE LISTENER ---
-
     public String getMainMenuTitle() {
         return Utils.color(plugin.getGuisConfig().getString("gui.main-gui.title", "Menu"));
     }
@@ -338,10 +303,21 @@ public class GUIManager {
         pendingDeletionHome.remove(uuid);
     }
 
+    public void clearPlayerPage(UUID uuid) {
+        playerPage.remove(uuid);
+    }
+
     public void playConfiguredClickSound(Player player, String guiPath) {
         String rawSound = plugin.getGuisConfig().getString("gui." + guiPath + ".click-sound");
         if (rawSound != null && !rawSound.isEmpty()) {
-            player.playSound(player.getLocation(), rawSound, 1.0f, 1.0f);
+            String sound = rawSound.toLowerCase().replace('_', '.');
+            if (!sound.contains(":")) {
+                sound = "minecraft:" + sound;
+            }
+            try {
+                player.playSound(player.getLocation(), sound, 1.0f, 1.0f);
+            } catch (Exception ignored) {
+            }
         }
     }
 

@@ -1,6 +1,10 @@
 package org.sethomegui;
 
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.sethomegui.Commands.HomeAdminCommand;
 import org.sethomegui.Commands.HomeAdminTabCompleter;
@@ -20,6 +24,7 @@ import dev.dejvokep.boostedyaml.settings.updater.UpdaterSettings;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.UUID;
 
 public final class SetHomeGUI extends JavaPlugin {
     private YamlDocument mainConfig;
@@ -49,6 +54,7 @@ public final class SetHomeGUI extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ConfirmationMenuListener(this), this);
         getServer().getPluginManager().registerEvents(new AdminMenuClickListener(this), this);
         getServer().getPluginManager().registerEvents(new AdminChatListener(this), this);
+        getServer().getPluginManager().registerEvents(new PlayerQuitListener(), this);
 
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             getLogger().info("PlaceholderAPI found! Registering placeholders...");
@@ -59,8 +65,6 @@ public final class SetHomeGUI extends JavaPlugin {
 
         if (getCommand("home") != null) {
             getCommand("home").setExecutor(new MainCommands(this));
-
-            // NUEVO: Vinculamos el TabCompleter de los hogares del jugador
             getCommand("home").setTabCompleter(new HomeTabCompleter(this));
         }
 
@@ -73,15 +77,24 @@ public final class SetHomeGUI extends JavaPlugin {
             this.getCommand("delhome").setTabCompleter(new org.sethomegui.Commands.DelHomeTabCompleter(this));
         }
 
-        // Registro del comando ejecutor
         if (getCommand("homeadmin") != null) {
             getCommand("homeadmin").setExecutor(new HomeAdminCommand(this));
-
-            // NUEVO: Vinculamos el TabCompleter al comando
             getCommand("homeadmin").setTabCompleter(new HomeAdminTabCompleter());
         }
 
         getLogger().info("SetHomeGUI has been successfully enabled on Folia!");
+    }
+
+    private class PlayerQuitListener implements Listener {
+        @EventHandler
+        public void onPlayerQuit(PlayerQuitEvent event) {
+            UUID uuid = event.getPlayer().getUniqueId();
+            guiManager.clearPlayerPage(uuid);
+            guiManager.clearPendingDeletion(uuid);
+            adminGUIManager.setPage(uuid, 1);
+            adminGUIManager.setSearchFilter(uuid, "");
+            teleportManager.cancelActiveTeleport(uuid);
+        }
     }
 
     private void setupFiles() {
@@ -90,28 +103,25 @@ public final class SetHomeGUI extends JavaPlugin {
                 getDataFolder().mkdirs();
             }
 
-            // Configuramos las opciones globales del actualizador para que NUNCA borre nada del usuario
             UpdaterSettings updaterSettings = UpdaterSettings.builder()
-                    .setKeepAll(true) // Conserva absolutamente todas las modificaciones de los administradores
+                    .setKeepAll(true)
                     .build();
 
             LoaderSettings loaderSettings = LoaderSettings.builder()
-                    .setAutoUpdate(true) // Dejamos que BoostedYAML fusione de forma segura
+                    .setAutoUpdate(true)
                     .build();
 
-            // --- MANEJO DE CONFIG.YML ---
             this.mainConfig = YamlDocument.create(
                     new File(getDataFolder(), "config.yml"),
-                    getResource("config.yml"), // Recurso base dentro del JAR
+                    getResource("config.yml"),
                     GeneralSettings.DEFAULT,
                     loaderSettings,
                     updaterSettings
             );
 
-            // --- MANEJO DE GUI.YML ---
             this.guisConfig = YamlDocument.create(
                     new File(getDataFolder(), "gui.yml"),
-                    getResource("gui.yml"), // Siempre pasamos el recurso; el updater se encarga de no romper nada
+                    getResource("gui.yml"),
                     GeneralSettings.DEFAULT,
                     loaderSettings,
                     updaterSettings
@@ -164,9 +174,6 @@ public final class SetHomeGUI extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        // Los archivos de configuración de lectura (como menús y config general) NO se deben guardar
-        // al apagar el servidor a menos que el plugin modifique valores mediante código (setters).
-        // Al quitar el .save() de aquí, evitamos que un guardado corrupto destruya las ediciones hechas a mano.
         getLogger().info("SetHomeGUI has been safely disabled.");
     }
 }

@@ -1,20 +1,5 @@
 package org.sethomegui;
 
-/*
- * This Metrics class was auto-generated and can be copied into your project if you are
- * not using a build tool like Gradle or Maven for dependency management.
- *
- * IMPORTANT: You are not allowed to modify this class, except changing the package.
- *
- * Disallowed modifications include but are not limited to:
- *  - Remove the option for users to opt-out
- *  - Change the frequency for data submission
- *  - Obfuscate the code (every obfuscator should allow you to make an exception for specific files)
- *  - Reformat the code (if you use a linter, add an exception)
- *
- * Violations will result in a ban of your plugin and account from bStats.
- */
-
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -43,16 +28,8 @@ public class Metrics {
 
     private final MetricsBase metricsBase;
 
-    /**
-     * Creates a new Metrics instance.
-     *
-     * @param plugin Your plugin instance.
-     * @param serviceId The id of the service. It can be found at <a
-     *     href="https://bstats.org/what-is-my-plugin-id">What is my plugin id?</a>
-     */
     public Metrics(Plugin plugin, int serviceId) {
         this.plugin = plugin;
-        // Get the config file
         File bStatsFolder = new File(plugin.getDataFolder().getParentFile(), "bStats");
         File configFile = new File(bStatsFolder, "config.yml");
         YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
@@ -62,7 +39,6 @@ public class Metrics {
             config.addDefault("logFailedRequests", false);
             config.addDefault("logSentData", false);
             config.addDefault("logResponseStatusText", false);
-            // Inform the server owners about bStats
             config
                     .options()
                     .header(
@@ -77,7 +53,6 @@ public class Metrics {
             } catch (IOException ignored) {
             }
         }
-        // Load the data
         boolean enabled = config.getBoolean("enabled", true);
         String serverUUID = config.getString("serverUuid");
         boolean logErrors = config.getBoolean("logFailedRequests", false);
@@ -101,7 +76,6 @@ public class Metrics {
                         false);
     }
 
-    /** Shuts down the underlying scheduler service. */
     public void shutdown() {
         metricsBase.shutdown();
     }
@@ -124,22 +98,17 @@ public class Metrics {
 
     private int getPlayerAmount() {
         try {
-            // Around MC 1.8 the return type was changed from an array to a collection,
-            // This fixes java.lang.NoSuchMethodError:
-            // org.bukkit.Bukkit.getOnlinePlayers()Ljava/util/Collection;
             Method onlinePlayersMethod = Class.forName("org.bukkit.Server").getMethod("getOnlinePlayers");
             return onlinePlayersMethod.getReturnType().equals(Collection.class)
                     ? ((Collection<?>) onlinePlayersMethod.invoke(Bukkit.getServer())).size()
                     : ((Player[]) onlinePlayersMethod.invoke(Bukkit.getServer())).length;
         } catch (Exception e) {
-            // Just use the new method if the reflection failed
             return Bukkit.getOnlinePlayers().size();
         }
     }
 
     public static class MetricsBase {
 
-        /** The version of the Metrics class. */
         public static final String METRICS_VERSION = "3.0.3";
 
         private static final String REPORT_URL = "https://bStats.org/api/v2/data/%s";
@@ -174,28 +143,6 @@ public class Metrics {
 
         private final boolean enabled;
 
-        /**
-         * Creates a new MetricsBase class instance.
-         *
-         * @param platform The platform of the service.
-         * @param serviceId The id of the service.
-         * @param serverUuid The server uuid.
-         * @param enabled Whether or not data sending is enabled.
-         * @param appendPlatformDataConsumer A consumer that receives a {@code JsonObjectBuilder} and
-         *     appends all platform-specific data.
-         * @param appendServiceDataConsumer A consumer that receives a {@code JsonObjectBuilder} and
-         *     appends all service-specific data.
-         * @param submitTaskConsumer A consumer that takes a runnable with the submit task. This can be
-         *     used to delegate the data collection to a another thread to prevent errors caused by
-         *     concurrency. Can be {@code null}.
-         * @param checkServiceEnabledSupplier A supplier to check if the service is still enabled.
-         * @param errorLogger A consumer that accepts log message and an error.
-         * @param infoLogger A consumer that accepts info log messages.
-         * @param logErrors Whether or not errors should be logged.
-         * @param logSentData Whether or not the sent data should be logged.
-         * @param logResponseStatusText Whether or not the response status text should be logged.
-         * @param skipRelocateCheck Whether or not the relocate check should be skipped.
-         */
         public MetricsBase(
                 String platform,
                 String serverUuid,
@@ -219,10 +166,6 @@ public class Metrics {
                                 thread.setDaemon(true);
                                 return thread;
                             });
-            // We want delayed tasks (non-periodic) that will execute in the future to be
-            // cancelled when the scheduler is shutdown.
-            // Otherwise, we risk preventing the server from shutting down even when
-            // MetricsBase#shutdown() is called
             scheduler.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
             this.scheduler = scheduler;
             this.platform = platform;
@@ -242,8 +185,6 @@ public class Metrics {
                 checkRelocation();
             }
             if (enabled) {
-                // WARNING: Removing the option to opt-out will get your plugin banned from
-                // bStats
                 startSubmitting();
             }
         }
@@ -260,7 +201,6 @@ public class Metrics {
             final Runnable submitTask =
                     () -> {
                         if (!enabled || !checkServiceEnabledSupplier.get()) {
-                            // Submitting data or service is disabled
                             scheduler.shutdown();
                             return;
                         }
@@ -270,14 +210,7 @@ public class Metrics {
                             this.submitData();
                         }
                     };
-            // Many servers tend to restart at a fixed time at xx:00 which causes an uneven
-            // distribution of requests on the
-            // bStats backend. To circumvent this problem, we introduce some randomness into
-            // the initial and second delay.
-            // WARNING: You must not modify and part of this Metrics class, including the
-            // submit delay or frequency!
-            // WARNING: Modifying this code will get your plugin banned on bStats. Just
-            // don't do it!
+
             long initialDelay = (long) (1000 * 60 * (3 + Math.random() * 3));
             long secondDelay = (long) (1000 * 60 * (Math.random() * 30));
             scheduler.schedule(submitTask, initialDelay, TimeUnit.MILLISECONDS);
@@ -304,10 +237,8 @@ public class Metrics {
             scheduler.execute(
                     () -> {
                         try {
-                            // Send the data
                             sendData(data);
                         } catch (Exception e) {
-                            // Something went wrong! :(
                             if (logErrors) {
                                 errorLogger.accept("Could not submit bStats metrics data", e);
                             }
@@ -321,7 +252,6 @@ public class Metrics {
             }
             String url = String.format(REPORT_URL, platform);
             HttpsURLConnection connection = (HttpsURLConnection) new URL(url).openConnection();
-            // Compress the data to save bandwidth
             byte[] compressedData = compress(data.toString());
             connection.setRequestMethod("POST");
             connection.addRequestProperty("Accept", "application/json");
@@ -347,7 +277,6 @@ public class Metrics {
             }
         }
 
-        /** Checks that the class was properly relocated. */
         private void checkRelocation() {
             // You can use the property to disable the check in your test environment
             if (System.getProperty("bstats.relocatecheck") == null

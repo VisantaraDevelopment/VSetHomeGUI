@@ -1,11 +1,12 @@
 package org.sethomegui.Listeners;
 
+import io.papermc.paper.event.player.AsyncChatEvent;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.sethomegui.SetHomeGUI;
 import org.sethomegui.Utils.Utils;
 
@@ -28,7 +29,7 @@ public class ChatPromptListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
-    public void onPlayerChat(AsyncPlayerChatEvent event) {
+    public void onPlayerChat(AsyncChatEvent event) {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
 
@@ -36,11 +37,10 @@ public class ChatPromptListener implements Listener {
 
         event.setCancelled(true);
 
-        String message = event.getMessage().trim();
+        String message = PlainTextComponentSerializer.plainText().serialize(event.message()).trim();
         String basePath = "messages.home-creation-messages.";
         String cancelWord = plugin.getMainConfig().getString(basePath + "cancel-word", "cancel");
 
-        // 1. CONTROL DE CANCELACIÓN
         if (message.equalsIgnoreCase(cancelWord)) {
             awaitingHomeName.remove(uuid);
             String cancelMsg = plugin.getMainConfig().getString(basePath + "creation-cancelled");
@@ -48,7 +48,6 @@ public class ChatPromptListener implements Listener {
             return;
         }
 
-        // 2. VALIDACIÓN MEDIANTE REGEX DINÁMICO (Configurable)
         String regex = plugin.getMainConfig().getString("name-regex", "^[A-Za-z0-9\\s]{1,32}$");
         if (!message.matches(regex) || message.isEmpty()) {
             String errorMsg = plugin.getMainConfig().getString(basePath + "invalid-name");
@@ -57,7 +56,6 @@ public class ChatPromptListener implements Listener {
             return;
         }
 
-        // VALIDACIÓN DE PALABRAS PROHIBIDAS (Lista Negra de Nombres)
         List<String> blacklistedWords = plugin.getMainConfig().getStringList("blacklisted-words");
         if (blacklistedWords != null) {
             for (String word : blacklistedWords) {
@@ -72,7 +70,6 @@ public class ChatPromptListener implements Listener {
             }
         }
 
-        // --- COMPROBACIÓN DE MUNDO EN LISTA NEGRA (ÚLTIMO SEGUNDO) ---
         String currentWorld = player.getWorld().getName();
         List<String> blacklistedWorlds = plugin.getMainConfig().getStringList("blacklisted-worlds");
 
@@ -80,11 +77,10 @@ public class ChatPromptListener implements Listener {
             String worldMsg = plugin.getMainConfig().getString(basePath + "world-blacklisted");
             worldMsg = worldMsg.replace("%world%", "&f" + currentWorld);
             player.sendMessage(Utils.setPlaceholders(player, worldMsg, plugin));
-            awaitingHomeName.remove(uuid); // Limpiamos su estado de espera ya que el proceso falló
+            awaitingHomeName.remove(uuid);
             return;
         }
 
-        // 3. FILTRO DE LÍMITES
         int currentHomes = plugin.getHomeManager().getHomeCount(uuid);
         int maxHomes = plugin.getHomeManager().getPlayerMaxHomes(player);
         boolean homeExists = plugin.getHomeManager().getPlayerFile(uuid).getStringList("homes").contains(message);
@@ -96,7 +92,6 @@ public class ChatPromptListener implements Listener {
             return;
         }
 
-        // 4. GUARDADO EXITOSO
         awaitingHomeName.remove(uuid);
         String homeName = message;
 
